@@ -1,50 +1,28 @@
-import Fastify from 'fastify';
-import cors from '@fastify/cors';
-import jwt from '@fastify/jwt';
-import dotenv from 'dotenv';
+import Fastify from "fastify";
+import cors from "@fastify/cors";
 
-import authRoutes from '../src/routes/auth.routes.js';
-import dashboardRoutes from '../src/routes/dashboard.routes.js';
-import leadRoutes from '../src/routes/lead.routes.js';
-import opportunityRoutes from '../src/routes/opportunity.routes.js';
-import manufacturingRoutes from '../src/routes/manufacturing.routes.js';
-import inventoryRoutes from '../src/routes/inventory.routes.js';
-import hrRoutes from '../src/routes/hr.routes.js';
-
-dotenv.config();
-
-const app = Fastify({
-  logger: true,
-});
+const app = Fastify();
 
 await app.register(cors, {
   origin: true,
-  credentials: true,
 });
 
-await app.register(jwt, {
-  secret: process.env.JWT_SECRET || 'fallback_secret_change_me',
-});
-
-await app.register(authRoutes, { prefix: '/api/auth' });
-await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
-await app.register(leadRoutes, { prefix: '/api/leads' });
-await app.register(opportunityRoutes, { prefix: '/api/opportunities' });
-await app.register(manufacturingRoutes, {
-  prefix: '/api/manufacturing-orders',
-});
-await app.register(inventoryRoutes, { prefix: '/api/inventory' });
-await app.register(hrRoutes, { prefix: '/api/employees' });
-
-app.get('/', async () => {
+app.get("/", async () => {
   return {
-    status: 'ok',
-    message: 'API Running',
+    success: true,
+    message: "Backend Working",
+  };
+});
+
+app.post("/api/auth/login", async () => {
+  return {
+    success: true,
+    token: "test-token",
   };
 });
 
 await app.ready();
 
 export default async function handler(req, res) {
-  app.server.emit('request', req, res);
+  app.server.emit("request", req, res);
 }
