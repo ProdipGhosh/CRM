@@ -13,38 +13,45 @@ import hrRoutes from '../src/routes/hr.routes.js';
 
 dotenv.config();
 
-const app = Fastify({
-  logger: true,
-});
+// Cache the app instance across Vercel invocations (avoids re-init on warm requests)
+let app;
 
-await app.register(cors, {
-  origin: true,
-  credentials: true,
-});
+async function buildApp() {
+  if (app) return app;
 
-await app.register(jwt, {
-  secret: process.env.JWT_SECRET || 'fallback_secret_change_me',
-});
+  app = Fastify({
+    // Disable logger in production serverless — pino writes to stdout but
+    // Vercel captures logs anyway; disabling saves ~10ms per cold start.
+    logger: process.env.NODE_ENV !== 'production',
+  });
 
-await app.register(authRoutes, { prefix: '/api/auth' });
-await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
-await app.register(leadRoutes, { prefix: '/api/leads' });
-await app.register(opportunityRoutes, { prefix: '/api/opportunities' });
-await app.register(manufacturingRoutes, {
-  prefix: '/api/manufacturing-orders',
-});
-await app.register(inventoryRoutes, { prefix: '/api/inventory' });
-await app.register(hrRoutes, { prefix: '/api/employees' });
+  await app.register(cors, {
+    origin: [
+      'http://localhost:5173',
+      process.env.CLIENT_URL,
+    ].filter(Boolean),
+    credentials: true,
+  });
 
-app.get('/', async () => {
-  return {
-    status: 'ok',
-    message: 'API Running',
-  };
-});
+  await app.register(jwt, {
+    secret: process.env.JWT_SECRET,
+  });
 
-await app.ready();
+  await app.register(authRoutes, { prefix: '/api/auth' });
+  await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
+  await app.register(leadRoutes, { prefix: '/api/leads' });
+  await app.register(opportunityRoutes, { prefix: '/api/opportunities' });
+  await app.register(manufacturingRoutes, { prefix: '/api/manufacturing-orders' });
+  await app.register(inventoryRoutes, { prefix: '/api/inventory' });
+  await app.register(hrRoutes, { prefix: '/api/employees' });
+
+  app.get('/', async () => ({ status: 'ok', message: 'API Running' }));
+
+  await app.ready();
+  return app;
+}
 
 export default async function handler(req, res) {
-  app.server.emit('request', req, res);
+  const instance = await buildApp();
+  instance.server.emit('request', req, res);
 }

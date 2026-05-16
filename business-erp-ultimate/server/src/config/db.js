@@ -5,15 +5,17 @@ dotenv.config();
 
 const { Pool } = pg;
 
+// Serverless-optimized pool: keep connections small.
+// Vercel can spin up many function instances simultaneously — a large pool
+// per instance exhausts Neon's connection limit fast.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
   },
-});
-
-pool.on('connect', () => {
-  console.log('✓ Connected to Neon PostgreSQL');
+  max: 1,                // one connection per serverless instance
+  idleTimeoutMillis: 10000, // release idle connections quickly
+  connectionTimeoutMillis: 5000,
 });
 
 pool.on('error', (err) => {
