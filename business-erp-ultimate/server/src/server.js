@@ -23,12 +23,21 @@ const app = Fastify({
 });
 
 // Register plugins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://crm-one-gold.vercel.app',
+];
+
 await app.register(cors, {
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Not allowed'), false);
+  },
   credentials: true,
 });
-
 await app.register(jwt, {
   secret: process.env.JWT_SECRET || 'fallback_secret_change_me',
 });
