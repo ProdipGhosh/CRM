@@ -1,1 +1,1 @@
-import authRoutes from "./routes/auth.routes";
+import authRoutes from "./routes/auth.routes.js";
