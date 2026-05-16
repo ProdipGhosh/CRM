@@ -14,59 +14,40 @@ import hrRoutes from './routes/hr.routes.js';
 dotenv.config();
 
 const app = Fastify({
-  logger: {
-    transport: {
-      target: 'pino-pretty',
-      options: { colorize: true },
-    },
-  },
+  logger: true,
 });
-
-// Register plugins
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://crm-one-gold.vercel.app',
-];
 
 await app.register(cors, {
-  origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      cb(null, true);
-      return;
-    }
-    cb(new Error('Not allowed'), false);
-  },
+  origin: [
+    'http://localhost:5173',
+    'https://crm-one-gold.vercel.app',
+  ],
   credentials: true,
 });
+
 await app.register(jwt, {
   secret: process.env.JWT_SECRET || 'fallback_secret_change_me',
 });
 
-// Register routes
 await app.register(authRoutes, { prefix: '/api/auth' });
 await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
 await app.register(leadRoutes, { prefix: '/api/leads' });
 await app.register(opportunityRoutes, { prefix: '/api/opportunities' });
-await app.register(manufacturingRoutes, { prefix: '/api/manufacturing-orders' });
+await app.register(manufacturingRoutes, {
+  prefix: '/api/manufacturing-orders',
+});
 await app.register(inventoryRoutes, { prefix: '/api/inventory' });
 await app.register(hrRoutes, { prefix: '/api/employees' });
 
-// Health check
-app.get('/', async () => ({
-  status: 'ok',
-  message: 'Business ERP Ultimate API is running',
-  version: '1.0.0',
-}));
+app.get('/', async () => {
+  return {
+    status: 'ok',
+    message: 'API Running',
+  };
+});
 
-app.get('/health', async () => ({ status: 'healthy' }));
-export default app;
-// Start server
-const PORT = parseInt(process.env.PORT) || 5000;
-try {
-  await app.listen({ port: PORT, host: '0.0.0.0' });
-  console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📋 API Base: http://localhost:${PORT}/api`);
-} catch (err) {
-  app.log.error(err);
-  process.exit(1);
+await app.ready();
+
+export default async function handler(req, res) {
+  app.server.emit('request', req, res);
 }
